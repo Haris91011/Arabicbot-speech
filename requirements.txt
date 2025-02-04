@@ -18,4 +18,4 @@ python-multipart
 pymupdf
 python-docx 
 streamlit
-streamlit_audio_recorder
+audio-recorder-streamlit
