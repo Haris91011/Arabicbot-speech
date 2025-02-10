@@ -22,12 +22,12 @@ def get_speech_to_text(audio_bytes):
         st.error(f"Error in speech to text conversion: {str(e)}")
         return None
 
-def get_text_to_speech(text):
+def get_text_to_speech(text, voice_type):
     """Convert text to speech using the API"""
     try:
         response = requests.post(
             f"{BASE_URL}/api/text-to-speech",
-            json={"text": text},
+            json={"text": text, "voice_type": voice_type},
             stream=True
         )
         if response.status_code == 200:
@@ -65,12 +65,23 @@ def main():
         st.session_state.last_audio_bytes = None
     if "is_processing_audio" not in st.session_state:
         st.session_state.is_processing_audio = False
+    if "voice_type" not in st.session_state:
+        st.session_state.voice_type = "alloy"  # Default voice type
 
     # ----- SIDEBAR -----
     with st.sidebar:
         st.header("Configuration")
         st.info(f"Chatbot ID: {st.session_state.chatbot_id}")
         st.info(f"User ID: {st.session_state.user_id}")
+
+        # Voice type selection
+        st.subheader("Voice Settings")
+        voice_options = ["alloy", "ash", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"]
+        st.session_state.voice_type = st.selectbox(
+            "Select Voice Type",
+            options=voice_options,
+            index=voice_options.index(st.session_state.voice_type)
+        )
 
         # Document Upload (only PDF)
         st.subheader("Document Upload (PDF only)")
@@ -145,7 +156,10 @@ def main():
                 # Generate audio in background if not already present
                 if "audio" not in content:
                     with st.spinner("Generating audio response..."):
-                        content["audio"] = get_text_to_speech(content["response"])
+                        content["audio"] = get_text_to_speech(
+                            content["response"],
+                            st.session_state.voice_type
+                        )
                         # Update the message in chat history with audio
                         st.session_state.chat_history[idx]["content"] = content
                 
