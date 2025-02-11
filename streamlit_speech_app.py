@@ -8,7 +8,7 @@ from audio_recorder_streamlit import audio_recorder
 
 # Configure the base URL for your FastAPI backend
 BASE_URL = "https://testing.murshed.marahel.sa/"
-# BASE_URL = "http://127.0.0.1:9696/"
+BASE_URL = "http://127.0.0.1:9696/"
 
 def get_speech_to_text(audio_bytes):
     """Convert speech to text using the API"""
@@ -35,6 +35,21 @@ def get_text_to_speech(text, voice_type):
         return None
     except Exception as e:
         st.error(f"Error in text to speech conversion: {str(e)}")
+        return None
+
+def get_playht_text_to_speech(text):
+    """Convert text to speech using the PlayHT API"""
+    try:
+        response = requests.post(
+            f"{BASE_URL}/api/playht-text-to-speech",
+            json={"text": text},
+            stream=True
+        )
+        if response.status_code == 200:
+            return response.content
+        return None
+    except Exception as e:
+        st.error(f"Error in PlayHT text to speech conversion: {str(e)}")
         return None
 
 def main():
@@ -67,6 +82,8 @@ def main():
         st.session_state.is_processing_audio = False
     if "voice_type" not in st.session_state:
         st.session_state.voice_type = "alloy"  # Default voice type
+    if "tts_provider" not in st.session_state:
+        st.session_state.tts_provider = "openai"  # Default to OpenAI
 
     # ----- SIDEBAR -----
     with st.sidebar:
@@ -74,14 +91,21 @@ def main():
         st.info(f"Chatbot ID: {st.session_state.chatbot_id}")
         st.info(f"User ID: {st.session_state.user_id}")
 
-        # Voice type selection
-        st.subheader("Voice Settings")
-        voice_options = ["alloy", "ash", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"]
-        st.session_state.voice_type = st.selectbox(
-            "Select Voice Type",
-            options=voice_options,
-            index=voice_options.index(st.session_state.voice_type)
+        # TTS Provider selection
+        st.session_state.tts_provider = st.radio(
+            "Select TTS Provider",
+            options=["openai", "playht"],
+            index=0 if st.session_state.tts_provider == "openai" else 1
         )
+
+        # Voice type selection (only show for OpenAI)
+        if st.session_state.tts_provider == "openai":
+            voice_options = ["alloy", "ash", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"]
+            st.session_state.voice_type = st.selectbox(
+                "Select Voice Type",
+                options=voice_options,
+                index=voice_options.index(st.session_state.voice_type)
+            )
 
         # Document Upload (only PDF)
         st.subheader("Document Upload (PDF only)")
@@ -156,10 +180,15 @@ def main():
                 # Generate audio in background if not already present
                 if "audio" not in content:
                     with st.spinner("Generating audio response..."):
-                        content["audio"] = get_text_to_speech(
-                            content["response"],
-                            st.session_state.voice_type
-                        )
+                        if st.session_state.tts_provider == "openai":
+                            content["audio"] = get_text_to_speech(
+                                content["response"],
+                                st.session_state.voice_type
+                            )
+                        else:  # playht
+                            content["audio"] = get_playht_text_to_speech(
+                                content["response"]
+                            )
                         # Update the message in chat history with audio
                         st.session_state.chat_history[idx]["content"] = content
                 
