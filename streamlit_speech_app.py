@@ -192,9 +192,20 @@ def main():
                         # Update the message in chat history with audio
                         st.session_state.chat_history[idx]["content"] = content
                 
-                # Display audio player if audio is available
+                # Display audio player and download button if audio is available
                 if content.get("audio"):
-                    st.audio(content["audio"], format='audio/mp3')
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.audio(content["audio"], format='audio/mp3')
+                    with col2:
+                        # Generate a unique filename for each audio response
+                        filename = f"murshad_response_{idx}.mp3"
+                        st.download_button(
+                            label="💾 Download",
+                            data=content["audio"],
+                            file_name=filename,
+                            mime="audio/mp3"
+                        )
                 
                 # Display sources if available
                 if "source" in content:
