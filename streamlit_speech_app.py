@@ -8,7 +8,7 @@ from audio_recorder_streamlit import audio_recorder
 
 # Configure the base URL for your FastAPI backend
 BASE_URL = "https://testing.murshed.marahel.sa/"
-BASE_URL = "http://127.0.0.1:9696/"
+# BASE_URL = "http://127.0.0.1:9696/"
 
 def get_speech_to_text(audio_bytes):
     """Convert speech to text using the API"""
