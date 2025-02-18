@@ -8,7 +8,7 @@ from audio_recorder_streamlit import audio_recorder
 
 # Configure the base URL for your FastAPI backend
 BASE_URL = "https://testing.murshed.marahel.sa/"
-# BASE_URL = "http://127.0.0.1:9696/"
+BASE_URL = "http://127.0.0.1:9696/"
 
 def get_speech_to_text(audio_bytes):
     """Convert speech to text using the API"""
@@ -84,6 +84,8 @@ def main():
         st.session_state.voice_type = "alloy"  # Default voice type
     if "tts_provider" not in st.session_state:
         st.session_state.tts_provider = "openai"  # Default to OpenAI
+    if "playht_voice_type" not in st.session_state:
+        st.session_state.playht_voice_type = "male"  # Default voice type for PlayHT
 
     # ----- SIDEBAR -----
     with st.sidebar:
@@ -98,13 +100,20 @@ def main():
             index=0 if st.session_state.tts_provider == "openai" else 1
         )
 
-        # Voice type selection (only show for OpenAI)
+        # Voice type selection based on provider
         if st.session_state.tts_provider == "openai":
             voice_options = ["alloy", "ash", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"]
             st.session_state.voice_type = st.selectbox(
                 "Select Voice Type",
                 options=voice_options,
                 index=voice_options.index(st.session_state.voice_type)
+            )
+        else:  # PlayHT
+            playht_voice_options = ["male", "female"]
+            st.session_state.playht_voice_type = st.selectbox(
+                "Select Voice Type",
+                options=playht_voice_options,
+                index=playht_voice_options.index(st.session_state.playht_voice_type)
             )
 
         # Document Upload (only PDF)
@@ -186,13 +195,20 @@ def main():
                                 st.session_state.voice_type
                             )
                         else:  # playht
-                            content["audio"] = get_playht_text_to_speech(
-                                content["response"]
+                            response = requests.post(
+                                f"{BASE_URL}/api/playht-text-to-speech",
+                                json={
+                                    "text": content["response"],
+                                    "voice_type": st.session_state.playht_voice_type
+                                },
+                                stream=True
                             )
+                            if response.status_code == 200:
+                                content["audio"] = response.content
                         # Update the message in chat history with audio
                         st.session_state.chat_history[idx]["content"] = content
                 
-                # Display audio player and download button if audio is available
+                # Display audio player and download button if audio is available 
                 if content.get("audio"):
                     col1, col2 = st.columns([4, 1])
                     with col1:
